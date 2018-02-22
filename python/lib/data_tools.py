@@ -18,7 +18,7 @@ def connect():
     try:
         conn = psycopg2.connect(**params)
         #print("Connected!")
-        return conn.cursor() #returns connection and cursor
+        return conn.cursor("turtle") #returns connection and cursor
     except psycopg2.Error as e: #if database connection results in an error print the following
         print("I am unable to connect to the database: ", e)
 
@@ -246,8 +246,8 @@ def get_field_data(field, table, where=None):
     field_sql = """SELECT {field} FROM {table} {where} ;""".format(field=field, table=table, where=where)
     cur = connect()
     cur.execute(field_sql)
-    colnames = [desc[0] for desc in cur.description]
     data_df = pd.DataFrame(cur.fetchall(), columns=colnames)
+    colnames = [desc[0] for desc in cur.description]
     cur.close()
     return data_df
 
