@@ -22,6 +22,36 @@ def connect():
     except psycopg2.Error as e: #if database connection results in an error print the following
         print("I am unable to connect to the database: ", e)
 
+def get_sql_results_df(table, sql, cur, table2=None):
+    """formats SQL script and pulls data from the passed table(s)."""
+    if not table2:
+        sql=sql.format(table=table)
+    else:
+        table2 = table[:4] + str(int(table[4:8])-1) + "_ffiec"
+        sql=sql.format(table=table, table2=table2)
+    cur.execute(sql)
+    colnames = [desc[0] for desc in cur.description]
+    data_df = pd.DataFrame(cur.fetchall(), columns=colnames)
+    return data_df
+
+def compile_dfs(tables, outfile, sql, table2=None):
+    """Uses get_sql_results_df to compile multiple years of data (frames) into a single dataframe"""
+    cur=connect()
+    first = True
+    for table in tables:
+        year = table[4:8]
+        data_df = get_sql_results_df(table, sql, cur, table2)
+        data_df["year"] = year
+        print(data_df.head())
+        if first:
+            first = False
+            data_out_df = data_df.copy()
+        else:
+            data_out_df = pd.concat([data_out_df, data_df])
+    data_out_df.to_csv("../output/"+outfile+".csv", sep="|", index=False)
+    cur.close()
+    return data_out_df
+
 def get_lar_stats(field, table_list, where=None):
     """Loops over table_list and aggregates the metrics specified in get_year_stats."""
     historic_metrics = []
